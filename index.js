@@ -2,6 +2,7 @@
 
 console.log('initializing');
 
+const _ = require('lodash');
 const express = require('express');
 const app = express();
 const bodyParser = require('body-parser');
@@ -49,8 +50,44 @@ app.get('/result', function (req, res) {
     counters.forEach((v, k) => {
         result.push(v);
     });
-    result.sort((a,b) => a.who - b.who);
+    result.sort((a, b) => a.who - b.who);
     res.json(result);
+});
+
+app.get('/stats', function (req, res) {
+    const sql = `
+SELECT
+  who,
+  date_trunc('second', at) datetime,
+  count(1) count
+FROM vote
+WHERE at >= NOW() - '10 minute'::INTERVAL
+GROUP BY 1, 2
+ORDER BY date_trunc('second', at)
+`;
+    db.query(sql)
+        .then(resultSet => {
+            let stats = [];
+            _(resultSet.rows)
+                    .groupBy('who')
+                    .forOwn((v, k) => {
+                        let vals = v.map(chunk => {
+                            return {
+                                when: chunk.datetime,
+                                count: parseInt(chunk.count)
+                            };
+                        });
+                        let data = {
+                            key: k,
+                            values: vals
+                        };
+                        stats.push(data);
+                    });
+            res.json(stats);
+        }).catch(err => {
+        console.error('Error on getting stats', err);
+        res.sendStatus(500);
+    });
 });
 
 app.post('/vote', function (req, res) {
