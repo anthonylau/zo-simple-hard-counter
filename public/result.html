@@ -1,0 +1,15 @@
+<!doctype html>
+<html ng-app="simpleHardCounterApp">
+<head>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.3/angular.min.js"></script>
+    <script src="app.js"></script>
+</head>
+<body>
+<div ng-controller="ResultCtrl as vm" ng-init="vm.init()">
+    <div ng-hide="vm.initialized">Loading...</div>
+    <div ng-repeat="who in vm.candidates">
+        {{who.who}}. {{who.count}} votes <br/>
+    </div>
+</div>
+</body>
+</html>

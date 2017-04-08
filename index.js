@@ -46,12 +46,11 @@ console.log('initialized');
 
 app.get('/result', function (req, res) {
     let result = [];
-
     counters.forEach((v, k) => {
-        result.push([v, k]);
+        result.push(v);
     });
-
-    res.send('result' + JSON.stringify(result));
+    result.sort((a,b) => a.who - b.who);
+    res.json(result);
 });
 
 app.post('/vote', function (req, res) {
