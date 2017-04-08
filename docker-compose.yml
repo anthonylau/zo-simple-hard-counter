@@ -17,9 +17,10 @@ services:
       POSTGRES_PASSWORD: zo
       POSTGRES_USER: zo
       POSTGRES_DB: zo
+      REDIS_HOST: redis
 
   redis:
-    image: redis
+    image: redis:3.0.7-alpine
 
   postgres:
     image: postgres:9.6.1-alpine

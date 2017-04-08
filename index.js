@@ -1,11 +1,21 @@
 'use strict';
 
+const config = require('./config');
 const _ = require('lodash');
 const express = require('express');
 const app = express();
 const bodyParser = require('body-parser');
 const db = require('./libs/db');
 const counterRepo = require('./repos/counter')();
+const redis = require('redis');
+const bluebird = require('bluebird');
+bluebird.promisifyAll(redis.RedisClient.prototype);
+bluebird.promisifyAll(redis.Multi.prototype);
+
+const redisClient = redis.createClient({
+    host: config.redis_host
+});
+
 
 app.use(express.static('public'));
 app.use(bodyParser.json());
@@ -84,29 +94,46 @@ app.get('/result', function (req, res) {
 });
 
 app.get('/stats', function (req, res) {
-    counterRepo.getLast10MinuteStats()
-        .then(resultSet => {
-            let stats = [];
-            _(resultSet.rows)
-                    .groupBy('candidate_id')
-                    .forOwn((v, k) => {
-                        let vals = v.map(chunk => {
-                            return {
-                                at: chunk.at,
-                                count: parseInt(chunk.count)
+    const stats_cache_key = 'VOTE_STATS';
+    redisClient.getAsync(stats_cache_key)
+        .then(stats => {
+            if (stats) {
+                res.setHeader('Content-Type', 'application/json');
+                res.send(stats);
+                return;
+            }
+            counterRepo.getLast10MinuteStats()
+                .then(resultSet => {
+                    let stats = [];
+                    _(resultSet.rows)
+                        .groupBy('candidate_id')
+                        .forOwn((v, k) => {
+                            let vals = v.map(chunk => {
+                                return {
+                                    at: chunk.at,
+                                    count: parseInt(chunk.count)
+                                };
+                            });
+                            let data = {
+                                key: k,
+                                values: vals
                             };
+                            stats.push(data);
                         });
-                        let data = {
-                            key: k,
-                            values: vals
-                        };
-                        stats.push(data);
-                    });
-            res.json(stats);
+                    res.json(stats);
+                    return stats;
+                })
+                .then(stats => {
+                    redisClient.setex(stats_cache_key, 10, JSON.stringify(stats));
+                })
+                .catch(err => {
+                    console.error('Error on getting stats', err);
+                    res.sendStatus(500);
+                });
         }).catch(err => {
-        console.error('Error on getting stats', err);
-        res.sendStatus(500);
-    });
+            console.error('Error on getting stats', err);
+            res.sendStatus(500);
+        });
 });
 
 app.post('/vote/:candidateId', function (req, res) {
