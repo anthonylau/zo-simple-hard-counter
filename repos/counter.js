@@ -1,5 +1,6 @@
 'use strict';
 
+const _ = require('lodash');
 const db = require('../libs/db');
 
 module.exports = function CounterRepo() {
@@ -72,7 +73,25 @@ WHERE at >= NOW() - '10 minute'::INTERVAL
 GROUP BY 1, 2
 ORDER BY date_trunc('second', at)
 `;
-            return db.query(sql);
+            return db.query(sql).then(resultSet => {
+                let stats = [];
+                _(resultSet.rows)
+                    .groupBy('candidate_id')
+                    .forOwn((v, k) => {
+                        let vals = v.map(chunk => {
+                            return {
+                                at: chunk.at,
+                                count: parseInt(chunk.count)
+                            };
+                        });
+                        let data = {
+                            key: k,
+                            values: vals
+                        };
+                        stats.push(data);
+                    });
+                return stats;
+            })
         }
     };
 };

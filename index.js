@@ -103,23 +103,7 @@ app.get('/stats', function (req, res) {
                 return;
             }
             counterRepo.getLast10MinuteStats()
-                .then(resultSet => {
-                    let stats = [];
-                    _(resultSet.rows)
-                        .groupBy('candidate_id')
-                        .forOwn((v, k) => {
-                            let vals = v.map(chunk => {
-                                return {
-                                    at: chunk.at,
-                                    count: parseInt(chunk.count)
-                                };
-                            });
-                            let data = {
-                                key: k,
-                                values: vals
-                            };
-                            stats.push(data);
-                        });
+                .then(stats => {
                     res.json(stats);
                     return stats;
                 })
