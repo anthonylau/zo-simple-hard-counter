@@ -3,6 +3,8 @@
 angular.module('resultApp', ['nvd3'])
     .controller('ResultCtrl', ['$http', function($http) {
         var vm = this;
+        var minDate = new Date();
+        minDate.setMinutes(minDate.getMinutes() - 10 > 0 ? minDate.getMinutes() - 10 : -1 * Math.abs(minDate.getMinutes() - 10));
 
         vm.initialized = false;
         vm.candidates = [];
@@ -40,10 +42,12 @@ angular.module('resultApp', ['nvd3'])
                     },
                     axisLabelDistance: -10
                 },
+                forceX: [minDate, new Date()],
+                forceY: [0]
             },
             title: {
                 enable: true,
-                text: 'Vote in last 10 minutes'
+                text: 'Votes in last 10 minutes'
             },
         };
         vm.chartData = [];
