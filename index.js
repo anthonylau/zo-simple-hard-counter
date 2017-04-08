@@ -13,44 +13,87 @@ app.use(bodyParser.json());
 
 const candidateIds = [1, 2, 3]; //who is allowed to be counted
 
-let counters = new Map();
+let counterByCandidateId = new Map();
 
 function initialize() {
-    let loadCounters = candidateIds.map(candidateId => {
-        return db.query('SELECT id FROM vote WHERE candidate_id = $1 ORDER BY id', [candidateId])
-            .then(res => {
-                return res.rows.reduce((val, row) => {
-                    val.lastId = row.id;
-                    val.count += 1;
-                    return val;
-                }, {
-                    candidateId,
-                    lastId: null,
-                    count: 0
-                });
-            });
+    const loadCounters = candidateIds.map(candidateId => {
+        return loadCounter(candidateId).then(counter => {
+            return {
+                candidateId: counter.candidateId,
+                lastVoteId: counter.lastVoteId,
+                count: counter.count
+            };
+        });
     });
-
     Promise.all(loadCounters).then(vals => {
-        counters = new Map(vals.map(v => [v.candidateId, v]));
-        console.log(counters);
+        counterByCandidateId = new Map(vals.map(v => [v.candidateId, v]));
+        console.log('Counters', counterByCandidateId);
         app.listen(3000, function () {
-            console.log('Example app listening on port 3000!')
+            console.log('App listening on port 3000!')
         });
     }).catch(err => {
-        console.error('Error on loading counters', err);
+        console.error('Error on loading counterByCandidateId', err);
         process.exit(1);
     });
 }
-// console.trace(counters);
+// console.trace(counterByCandidateId);
 console.log('initialized');
 
-app.get('/result', function (req, res) {
-    let result = [];
-    counters.forEach((v, k) => {
-        result.push(v);
+
+function takeCounterSnapshots(counters) {
+    const sql = `
+INSERT INTO counter_snapshot (candidate_id, last_vote_id, count) VALUES ($1, $2, $3)
+ON CONFLICT (candidate_id)
+DO UPDATE SET
+    last_vote_id = EXCLUDED.last_vote_id,
+    count = EXCLUDED.count
+`;
+    return counters.map(counter => {
+        return db.query(sql, [counter.candidateId, counter.lastVoteId, counter.count]);
     });
-    result.sort((a, b) => a.candidateId - b.candidateId);
+}
+
+/**
+ * @param candidateId
+ * @return {Promise}
+ */
+function loadCounter(candidateId) {
+    const snapshotSql = "SELECT candidate_id, last_vote_id, count FROM counter_snapshot WHERE candidate_id = $1";
+    return db.query(snapshotSql, [candidateId])
+        .then(res => {
+            if (res.rows.length > 0) {
+                const row = res.rows[0];
+                return {
+                    candidateId: row.candidate_id,
+                    lastVoteId: row.last_vote_id,
+                    count: parseInt(row.count)
+                }
+            }
+            return {
+                candidateId,
+                lastVoteId: 0,
+                count: 0
+            };
+        }).then(snapshot => {
+            return db.query('SELECT id FROM vote WHERE candidate_id = $1 AND id > $2 ORDER BY id', [candidateId, snapshot.lastVoteId])
+                .then(res => {
+                    console.info('Processing candidateId=%s, rowCount=%s', candidateId, res.rows.length);
+                    return res.rows.reduce((val, row) => {
+                        val.lastVoteId = row.id;
+                        val.count += 1;
+                        return val;
+                    }, {
+                        candidateId,
+                        lastVoteId: snapshot.lastVoteId,
+                        count: snapshot.count
+                    });
+                });
+        });
+}
+
+app.get('/result', function (req, res) {
+    let result = Array.from(counterByCandidateId.values())
+        .sort((a, b) => a.candidateId - b.candidateId);
     res.json(result);
 });
 
@@ -91,18 +134,33 @@ ORDER BY date_trunc('second', at)
 });
 
 app.post('/vote', function (req, res) {
-    const candidate_id = req.param('candidate_id');
-    if (candidateIds.includes(candidate_id)) {
-        db.query('INSERT INTO vote (candidate_id, at) VALUES ($1, $2)', [candidate_id, new Date()])
+    const candidateId = req.param('candidate_id');
+    if (candidateIds.includes(candidateId)) {
+        db.query('INSERT INTO vote (candidate_id, at) VALUES ($1, $2) RETURNING id', [candidateId, new Date()])
             .then(res => {
-                let counter = counters.get(candidate_id);
+                let counter = counterByCandidateId.get(candidateId);
+                counter.lastVoteId = res.oid;
                 counter.count += 1;
-            }).catch(err => console.error('Error inserting vote', err));
+                return counter.count;
+            })
+            .catch(err => console.error('Error inserting vote', err));
 
         res.sendStatus(200);
     } else {
         res.sendStatus(400);
     }
+});
+
+// take counter snapshot
+app.get('/snapshot', function (req, res) {
+    const counters = Array.from(counterByCandidateId.values());
+    Promise.all(takeCounterSnapshots(counters))
+        .then(values => res.sendStatus(200))
+        .catch(err => {
+            console.error('Error on taking snapshot', err);
+            res.sendStatus(500);
+        })
+    ;
 });
 
 initialize();

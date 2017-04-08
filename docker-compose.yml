@@ -17,8 +17,11 @@ services:
     image: redis
 
   postgres:
-    image: postgres:9.2.20-alpine
+    image: postgres:9.6.1-alpine
     ports:
       - 25432:5432
+    environment:
+      POSTGRES_PASSWORD: zo
+      POSTGRES_USER: zo
+      POSTGRES_DB: zo
 
-  

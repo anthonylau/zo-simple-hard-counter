@@ -8,6 +8,7 @@ angular.module('resultApp', ['nvd3'])
         vm.candidates = [];
 
         vm.chartInitialized = false;
+        // https://nvd3-community.github.io/nvd3/examples/documentation.html#lineChart
         vm.chartOptions = {
             chart: {
                 type: 'lineChart',
