@@ -7,6 +7,7 @@ const express = require('express');
 const app = express();
 const bodyParser = require('body-parser');
 const db = require('./libs/db');
+const counterRepo = require('./repos/counter')();
 
 app.use(express.static('public'));
 app.use(bodyParser.json());
@@ -41,15 +42,8 @@ console.log('initialized');
 
 
 function takeCounterSnapshots(counters) {
-    const sql = `
-INSERT INTO counter_snapshot (candidate_id, last_vote_id, count) VALUES ($1, $2, $3)
-ON CONFLICT (candidate_id)
-DO UPDATE SET
-    last_vote_id = EXCLUDED.last_vote_id,
-    count = EXCLUDED.count
-`;
     return counters.map(counter => {
-        return db.query(sql, [counter.candidateId, counter.lastVoteId, counter.count]);
+        return counterRepo.updateCounterSnapshot(counter.candidateId, counter.lastVoteId, counter.count);
     });
 }
 
@@ -58,24 +52,18 @@ DO UPDATE SET
  * @return {Promise}
  */
 function loadCounter(candidateId) {
-    const snapshotSql = "SELECT candidate_id, last_vote_id, count FROM counter_snapshot WHERE candidate_id = $1";
-    return db.query(snapshotSql, [candidateId])
-        .then(res => {
-            if (res.rows.length > 0) {
-                const row = res.rows[0];
+    return counterRepo.getCounterSnapshot(candidateId)
+        .then(snapshot => {
+            if (snapshot == null) {
                 return {
-                    candidateId: row.candidate_id,
-                    lastVoteId: row.last_vote_id,
-                    count: parseInt(row.count)
-                }
+                    candidateId,
+                    lastVoteId: 0,
+                    count: 0
+                };
             }
-            return {
-                candidateId,
-                lastVoteId: 0,
-                count: 0
-            };
+            return snapshot;
         }).then(snapshot => {
-            return db.query('SELECT id FROM vote WHERE candidate_id = $1 AND id > $2 ORDER BY id', [candidateId, snapshot.lastVoteId])
+            return counterRepo.getVotes(candidateId, snapshot.lastVoteId)
                 .then(res => {
                     console.info('Processing candidateId=%s, rowCount=%s', candidateId, res.rows.length);
                     return res.rows.reduce((val, row) => {
@@ -98,17 +86,7 @@ app.get('/result', function (req, res) {
 });
 
 app.get('/stats', function (req, res) {
-    const sql = `
-SELECT
-  candidate_id,
-  date_trunc('second', at) "at",
-  count(1) count
-FROM vote
-WHERE at >= NOW() - '10 minute'::INTERVAL
-GROUP BY 1, 2
-ORDER BY date_trunc('second', at)
-`;
-    db.query(sql)
+    counterRepo.getLast10MinuteStats()
         .then(resultSet => {
             let stats = [];
             _(resultSet.rows)
@@ -133,10 +111,10 @@ ORDER BY date_trunc('second', at)
     });
 });
 
-app.post('/vote', function (req, res) {
-    const candidateId = req.param('candidate_id');
+app.post('/vote/:candidateId', function (req, res) {
+    const candidateId = parseInt(req.params.candidateId);
     if (candidateIds.includes(candidateId)) {
-        db.query('INSERT INTO vote (candidate_id, at) VALUES ($1, $2) RETURNING id', [candidateId, new Date()])
+        counterRepo.addVote(candidateId, new Date())
             .then(res => {
                 let counter = counterByCandidateId.get(candidateId);
                 counter.lastVoteId = res.oid;

@@ -5,8 +5,6 @@ angular.module('voteApp', [])
         var vm = this;
 
         vm.vote = function (candidateId) {
-            $http.post('/vote', {
-                candidate_id: candidateId
-            })
+            $http.post('/vote/' + candidateId);
         };
     }]);
