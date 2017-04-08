@@ -1,7 +1,5 @@
 'use strict';
 
-console.log('initializing');
-
 const _ = require('lodash');
 const express = require('express');
 const app = express();
@@ -17,6 +15,8 @@ const candidateIds = [1, 2, 3]; //who is allowed to be counted
 let counterByCandidateId = new Map();
 
 function initialize() {
+    console.log('initializing');
+    console.log('Loading Counters');
     const loadCounters = candidateIds.map(candidateId => {
         return loadCounter(candidateId).then(counter => {
             return {
@@ -37,8 +37,6 @@ function initialize() {
         process.exit(1);
     });
 }
-// console.trace(counterByCandidateId);
-console.log('initialized');
 
 
 function takeCounterSnapshots(counters) {
