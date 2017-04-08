@@ -107,7 +107,7 @@ app.get('/stats', function (req, res) {
                 return stats;
             })
             .then(stats => {
-                redisClient.setex(stats_cache_key, 10, JSON.stringify(stats));
+                redisClient.setex(stats_cache_key, config.stats_cache_timeout_sec, JSON.stringify(stats));
             })
             .catch(err => {
                 console.error('Error on getting stats', err);

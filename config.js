@@ -5,4 +5,5 @@ module.exports = {
     postgres_password: process.env.POSTGRES_PASSWORD,
     postgres_db: process.env.POSTGRES_DB,
     redis_host: process.env.REDIS_HOST,
+    stats_cache_timeout_sec: 10
 };
