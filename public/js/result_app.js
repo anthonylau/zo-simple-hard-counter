@@ -19,7 +19,7 @@ angular.module('resultApp', ['nvd3'])
                     left: 55
                 },
                 x: function(d){
-                    return new Date(d.when);
+                    return new Date(d.at);
                 },
                 y: function(d){
                     return d.count;

@@ -11,20 +11,20 @@ const db = require('./libs/db');
 app.use(express.static('public'));
 app.use(bodyParser.json());
 
-const whoIds = [1, 2, 3]; //who is allowed to be counted
+const candidateIds = [1, 2, 3]; //who is allowed to be counted
 
 let counters = new Map();
 
 function initialize() {
-    let loadCounters = whoIds.map(who => {
-        return db.query('SELECT id FROM vote WHERE who = $1 ORDER BY id', [who])
+    let loadCounters = candidateIds.map(candidateId => {
+        return db.query('SELECT id FROM vote WHERE candidate_id = $1 ORDER BY id', [candidateId])
             .then(res => {
                 return res.rows.reduce((val, row) => {
                     val.lastId = row.id;
                     val.count += 1;
                     return val;
                 }, {
-                    who,
+                    candidateId,
                     lastId: null,
                     count: 0
                 });
@@ -32,7 +32,7 @@ function initialize() {
     });
 
     Promise.all(loadCounters).then(vals => {
-        counters = new Map(vals.map(v => [v.who, v]));
+        counters = new Map(vals.map(v => [v.candidateId, v]));
         console.log(counters);
         app.listen(3000, function () {
             console.log('Example app listening on port 3000!')
@@ -50,15 +50,15 @@ app.get('/result', function (req, res) {
     counters.forEach((v, k) => {
         result.push(v);
     });
-    result.sort((a, b) => a.who - b.who);
+    result.sort((a, b) => a.candidateId - b.candidateId);
     res.json(result);
 });
 
 app.get('/stats', function (req, res) {
     const sql = `
 SELECT
-  who,
-  date_trunc('second', at) datetime,
+  candidate_id,
+  date_trunc('second', at) "at",
   count(1) count
 FROM vote
 WHERE at >= NOW() - '10 minute'::INTERVAL
@@ -69,11 +69,11 @@ ORDER BY date_trunc('second', at)
         .then(resultSet => {
             let stats = [];
             _(resultSet.rows)
-                    .groupBy('who')
+                    .groupBy('candidate_id')
                     .forOwn((v, k) => {
                         let vals = v.map(chunk => {
                             return {
-                                when: chunk.datetime,
+                                at: chunk.at,
                                 count: parseInt(chunk.count)
                             };
                         });
@@ -91,11 +91,11 @@ ORDER BY date_trunc('second', at)
 });
 
 app.post('/vote', function (req, res) {
-    const who = req.param('who');
-    if (whoIds.includes(who)) {
-        db.query('INSERT INTO vote (who, at) VALUES ($1, $2)', [who, new Date()])
+    const candidate_id = req.param('candidate_id');
+    if (candidateIds.includes(candidate_id)) {
+        db.query('INSERT INTO vote (candidate_id, at) VALUES ($1, $2)', [candidate_id, new Date()])
             .then(res => {
-                let counter = counters.get(who);
+                let counter = counters.get(candidate_id);
                 counter.count += 1;
             }).catch(err => console.error('Error inserting vote', err));
 

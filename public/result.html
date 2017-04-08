@@ -10,7 +10,7 @@
     <div ng-hide="vm.initialized">Loading...</div>
     <div ng-cloak>
         <div ng-repeat="who in vm.candidates">
-            {{who.who}}. {{who.count}} votes <br/>
+            {{who.candidateId}}. {{who.count}} votes <br/>
         </div>
         <div>
             <div ng-hide="vm.chartInitialized">Loading Chart</div>

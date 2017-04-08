@@ -4,9 +4,9 @@ angular.module('voteApp', [])
     .controller('VoteCtrl', ['$http', function ($http) {
         var vm = this;
 
-        vm.vote = function (who) {
+        vm.vote = function (candidateId) {
             $http.post('/vote', {
-                who: who
+                candidate_id: candidateId
             })
         };
     }]);
