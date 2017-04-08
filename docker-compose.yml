@@ -4,6 +4,9 @@ services:
   app:
     image: zo-simple-hard-counter
     build: .
+    command: node index.js
+    ports:
+      - 3000:3000
     links:
       - redis
       - postgres
@@ -15,4 +18,7 @@ services:
 
   postgres:
     image: postgres:9.2.20-alpine
+    ports:
+      - 25432:5432
+
   
