@@ -1,0 +1,18 @@
+version: '2'
+
+services:
+  app:
+    image: zo-simple-hard-counter
+    build: .
+    links:
+      - redis
+      - postgres
+    volumes:
+      - .:/usr/src/app
+
+  redis:
+    image: redis
+
+  postgres:
+    image: postgres:9.2.20-alpine
+  

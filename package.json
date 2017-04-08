@@ -1,0 +1,14 @@
+{
+  "name": "simple-hard-country",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {},
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^1.17.1",
+    "express": "^4.15.2",
+    "pug": "^2.0.0-beta11"
+  }
+}

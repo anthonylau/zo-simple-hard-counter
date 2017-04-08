@@ -1,0 +1,25 @@
+<!doctype html>
+<html ng-app="simpleHardCounterApp">
+<head>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.3/angular.min.js"></script>
+    <script src="app.js"></script>
+</head>
+<body>
+<div ng-controller="SimpleHardCounterCtrl as vm">
+    <ul>
+        <li>
+            薯片
+            <button ng-click="vm.vote(1)">Support</button>
+        </li>
+        <li>
+            林林
+            <button ng-click="vm.vote(2)">Support</button>
+        </li>
+        <li>
+            正氣
+            <button ng-click="vm.vote(3)">Support</button>
+        </li>
+    </ul>
+</div>
+</body>
+</html>
