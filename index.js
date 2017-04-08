@@ -8,12 +8,12 @@ const bodyParser = require('body-parser');
 const db = require('./libs/db');
 const counterRepo = require('./repos/counter')();
 const redis = require('redis');
-const bluebird = require('bluebird');
-bluebird.promisifyAll(redis.RedisClient.prototype);
-bluebird.promisifyAll(redis.Multi.prototype);
 
 const redisClient = redis.createClient({
     host: config.redis_host
+});
+redisClient.on("error", function(err) {
+    console.error("Error connecting to redis", err);
 });
 
 
@@ -95,29 +95,25 @@ app.get('/result', function (req, res) {
 
 app.get('/stats', function (req, res) {
     const stats_cache_key = 'VOTE_STATS';
-    redisClient.getAsync(stats_cache_key)
-        .then(stats => {
-            if (stats) {
-                res.setHeader('Content-Type', 'application/json');
-                res.send(stats);
-                return;
-            }
-            counterRepo.getLast10MinuteStats()
-                .then(stats => {
-                    res.json(stats);
-                    return stats;
-                })
-                .then(stats => {
-                    redisClient.setex(stats_cache_key, 10, JSON.stringify(stats));
-                })
-                .catch(err => {
-                    console.error('Error on getting stats', err);
-                    res.sendStatus(500);
-                });
-        }).catch(err => {
-            console.error('Error on getting stats', err);
-            res.sendStatus(500);
-        });
+    redisClient.get(stats_cache_key, function(err, result) {
+        if (result) {
+            res.setHeader('Content-Type', 'application/json');
+            res.send(result);
+            return;
+        }
+        counterRepo.getLast10MinuteStats()
+            .then(stats => {
+                res.json(stats);
+                return stats;
+            })
+            .then(stats => {
+                redisClient.setex(stats_cache_key, 10, JSON.stringify(stats));
+            })
+            .catch(err => {
+                console.error('Error on getting stats', err);
+                res.sendStatus(500);
+            });
+    });
 });
 
 app.post('/vote/:candidateId', function (req, res) {
