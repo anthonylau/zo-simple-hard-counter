@@ -11,8 +11,8 @@ services:
       - redis
       - postgres
       - localstack
-    volumes:
-      - .:/usr/src/app
+#    volumes:
+#      - .:/usr/src/app
     environment:
       POSTGRES_HOST: postgres
       POSTGRES_PASSWORD: zo
@@ -29,8 +29,8 @@ services:
       - redis
       - postgres
       - localstack
-    volumes:
-      - .:/usr/src/app
+#    volumes:
+#      - .:/usr/src/app
     environment:
       POSTGRES_HOST: postgres
       POSTGRES_PASSWORD: zo
@@ -48,8 +48,8 @@ services:
       - redis
       - postgres
       - localstack
-    volumes:
-      - .:/usr/src/app
+#    volumes:
+#      - .:/usr/src/app
     environment:
       POSTGRES_HOST: postgres
       POSTGRES_PASSWORD: zo
@@ -67,8 +67,8 @@ services:
       - redis
       - postgres
       - localstack
-    volumes:
-      - .:/usr/src/app
+#    volumes:
+#      - .:/usr/src/app
     environment:
       POSTGRES_HOST: postgres
       POSTGRES_PASSWORD: zo
