@@ -84,7 +84,7 @@ services:
   postgres:
     image: postgres:9.6.1-alpine
     ports:
-      - 25432:5432
+      - 5432:5432
     environment:
       POSTGRES_PASSWORD: zo
       POSTGRES_USER: zo
