@@ -120,9 +120,9 @@ app.post('/vote/:candidateId', function (req, res) {
     const candidateId = parseInt(req.params.candidateId);
     if (candidateIds.includes(candidateId)) {
         counterRepo.addVote(candidateId, new Date())
-            .then(res => {
+            .then(id => {
                 let counter = counterByCandidateId.get(candidateId);
-                counter.lastVoteId = res.oid;
+                counter.lastVoteId = id;
                 counter.count += 1;
                 return counter.count;
             })

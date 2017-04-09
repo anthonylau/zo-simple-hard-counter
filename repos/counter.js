@@ -11,7 +11,10 @@ module.exports = function CounterRepo() {
          * @return {Promise.<*>}
          */
         addVote(candidateId, at) {
-            return db.query('INSERT INTO vote (candidate_id, at) VALUES ($1, $2) RETURNING id', [candidateId, at]);
+            return db.query('INSERT INTO vote (candidate_id, at) VALUES ($1, $2) RETURNING id', [candidateId, at])
+                .then(res => {
+                    return res.rows[0].id;
+                });
         },
         /**
          * @param candidateId
