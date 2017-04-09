@@ -10,6 +10,7 @@ services:
     links:
       - redis
       - postgres
+      - localstack
     volumes:
       - .:/usr/src/app
     environment:
@@ -18,6 +19,64 @@ services:
       POSTGRES_USER: zo
       POSTGRES_DB: zo
       REDIS_HOST: redis
+      SQS_PROXY: localstack:4576
+
+  voteprocessor1:
+    image: zo-simple-hard-counter
+    build: .
+    command: node counter_processor.js
+    links:
+      - redis
+      - postgres
+      - localstack
+    volumes:
+      - .:/usr/src/app
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PASSWORD: zo
+      POSTGRES_USER: zo
+      POSTGRES_DB: zo
+      REDIS_HOST: redis
+      SQS_PROXY: localstack:4576
+      PROCESSOR_CANDIDATE_ID: 1
+
+  voteprocessor2:
+    image: zo-simple-hard-counter
+    build: .
+    command: node counter_processor.js
+    links:
+      - redis
+      - postgres
+      - localstack
+    volumes:
+      - .:/usr/src/app
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PASSWORD: zo
+      POSTGRES_USER: zo
+      POSTGRES_DB: zo
+      REDIS_HOST: redis
+      SQS_PROXY: localstack:4576
+      PROCESSOR_CANDIDATE_ID: 2
+
+  voteprocessor3:
+    image: zo-simple-hard-counter
+    build: .
+    command: node counter_processor.js
+    links:
+      - redis
+      - postgres
+      - localstack
+    volumes:
+      - .:/usr/src/app
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PASSWORD: zo
+      POSTGRES_USER: zo
+      POSTGRES_DB: zo
+      REDIS_HOST: redis
+      SQS_PROXY: localstack:4576
+      PROCESSOR_CANDIDATE_ID: 3
 
   redis:
     image: redis:3.0.7-alpine
@@ -31,3 +90,5 @@ services:
       POSTGRES_USER: zo
       POSTGRES_DB: zo
 
+  localstack:
+    image: atlassianlabs/localstack
